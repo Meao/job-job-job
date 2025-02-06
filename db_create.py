@@ -1,9 +1,10 @@
 import sqlite3
 
-conn = sqlite3.connect('cv_ee.db')
+conn = sqlite3.connect("cv_ee.db")
 cursor = conn.cursor()
 
-cursor.execute('''
+cursor.execute(
+    """
 CREATE TABLE IF NOT EXISTS vacancies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
@@ -14,7 +15,8 @@ CREATE TABLE IF NOT EXISTS vacancies (
     description TEXT,
     requirements TEXT
 )
-''')
+"""
+)
 
 conn.commit()
 conn.close()
