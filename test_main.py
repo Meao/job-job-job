@@ -1,10 +1,11 @@
 import pytest
+import requests
 import sqlite3
 import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from config import WEBSITE_URL, STARTS_E, URL_IFR, URL_SITE, URL_NEXT
+from config import WEBSITE_URL, STARTS_E, URL_IFR, URL_SITE, URL_NEXT, BOT_TOKEN, CHAT_ID
 
 FILTER_OUT = [
     'senior', 'middle', 'lead', 'night', 'arendaja', 'vanemarendaja', 
@@ -132,6 +133,22 @@ def extract_vacancy_data(webBrowser):
         print(f"Error extracting vacancy data: {e}")
         return None, None, None
 
+def send_to_telegram(message):
+    """
+    Send a message to a Telegram bot.
+    Args:
+        message: The message to send.
+    """
+    bot_token = BOT_TOKEN
+    chat_id = CHAT_ID
+    url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+    payload = {
+        'chat_id': chat_id,
+        'text': message
+    }
+    requests.post(url, data=payload)
+    print("Message sent to Telegram.")
+
 def close_current_tab(webBrowser):
     webBrowser.close()
     webBrowser.switch_to.window(webBrowser.window_handles[0])
@@ -168,6 +185,7 @@ def process_vacancy(conn, cursor, webBrowser, links):
                 name, description, expires = extract_vacancy_data(webBrowser)
                 if name and expires:
                     save_to_db(conn, cursor, name, href, expires, description)
+                    send_to_telegram(f"New Vacancy: {name}\nURL: {href}\nExpires: {expires}\nDescription: {description}")
                 close_current_tab(webBrowser)
         except Exception as e:
             print(f"Error processing link: {e}")
@@ -203,6 +221,5 @@ def test_cv_ee_pagination(webBrowser):
 
         # to do:  check if text contains keywords like night shifts and others to avoid
         # to do delete useless code
-        # to do send new entries to tg bot
         # to do other job sites
         # code author Krivtsoun
