@@ -12,17 +12,21 @@ class BaseScraper:
     def open_page(self, url):
         self.driver.get(url)
 
-    def open_link_in_new_tab(self, webBrowser, link):
-        webBrowser.execute_script("window.open(arguments[0], '_blank');", link)
-        WebDriverWait(webBrowser, 10).until(
+    def open_link_in_new_tab(self, link):
+        self.driver.execute_script("window.open(arguments[0], '_blank');", link)
+        WebDriverWait(self.driver, 10).until(
             lambda driver: len(driver.window_handles) > 1
         )
-        webBrowser.switch_to.window(webBrowser.window_handles[-1])
+        self.driver.switch_to.window(self.driver.window_handles[-1])
 
-    def wait_for_element(self, by, value, timeout=10):
-        return WebDriverWait(self.driver, timeout).until(
-            EC.presence_of_element_located((by, value))
-        )
+    # def wait_for_element(self, by, value, timeout=10):
+    #     return WebDriverWait(self.driver, timeout).until(
+    #         EC.presence_of_element_located((by, value))
+    #     )
+
+    def close_current_tab(self):
+        self.driver.close()
+        self.driver.switch_to.window(self.driver.window_handles[0])
 
     def close_browser(self):
         self.driver.quit()
