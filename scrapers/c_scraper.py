@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from config import STARTS_E, URL_IFR
+from config import STARTS_E, URL_IFR, URL_NEXT, URL_SITE
 from db_save import save_to_db
 from scrapers.base_scraper import BaseScraper
 from tg_bot import send_to_telegram
@@ -26,14 +26,6 @@ class Site1Scraper(BaseScraper):
                 span_elements = self.driver.find_elements(By.TAG_NAME, "span")
                 expires = self.extract_deadline(span_elements)
                 content_type = None
-                try:
-                    self.driver.find_element(
-                        By.CSS_SELECTOR, ".vacancy-details__image img"
-                    )
-                    content_type = "image"
-                    print(content_type)
-                except:
-                    pass
                 try:
                     self.driver.find_element(
                         By.CSS_SELECTOR, ".vacancy-details__section"
@@ -60,6 +52,12 @@ class Site1Scraper(BaseScraper):
                     print(content_type)
                     if should_avoid_text(vacancy_description):
                         return None, None, None
+                except:
+                    pass
+                try:
+                    self.driver.find_element(By.CSS_SELECTOR, ".vacancy-details__image")
+                    content_type = "image"
+                    print(content_type)
                 except:
                     pass
                 if expires:
@@ -101,40 +99,62 @@ class Site1Scraper(BaseScraper):
                     continue
                 href = link.get_attribute("href")
                 if href and href.startswith(STARTS_E):
-                    self.open_link_in_new_tab(self.driver, href)
+                    self.open_link_in_new_tab(href)
                     name, description, expires = self.extract_vacancy_data()
                     if name and expires:
-                        save_to_db(conn, cursor, name, href, expires, description)
-                        send_to_telegram(
-                            f"New Vacancy: {name}\nURL: {href}\nExpires: {expires}\nDescription: {description}"
+                        saved = save_to_db(
+                            conn, cursor, name, href, expires, description
                         )
+                        if saved:
+                            send_to_telegram(
+                                f"New Vacancy: {name}\nURL: {href}\nExpires: {expires}\nDescription: {description}"
+                            )
                     self.close_current_tab()
             except Exception as e:
                 print(f"Error processing link: {e}")
 
-    def handle_pagination(self, conn, cursor):
-        while True:
+    # def handle_pagination(self, conn, cursor):
+    #     while True:
+    #         WebDriverWait(self.driver, 10).until(
+    #             EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a"))
+    #         )
+    #         links = self.driver.find_elements(By.CSS_SELECTOR, "a")
+    #         self.process_vacancy(conn, cursor, links)
+    #         if not self.go_to_next_page():
+    #             break
+    def handle_pagination(self, conn, cursor, total_results):
+        results_per_page = 20
+        total_pages = (
+            total_results + results_per_page - 1
+        ) // results_per_page  # Adding results_per_page - 1 ensures that any remainder from the division results in an additional page being counted.
+        current_page = 1  # Start from the first page
+
+        while current_page <= total_pages:
+            print(f"Processing page {current_page} of {total_pages}...")
             WebDriverWait(self.driver, 10).until(
                 EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a"))
             )
             links = self.driver.find_elements(By.CSS_SELECTOR, "a")
             self.process_vacancy(conn, cursor, links)
+
             if not self.go_to_next_page():
                 break
 
+            current_page += 1  # Increment the page coun
+
     def scrape(self):
         # to check next page
-        # self.open_page(self.driver, URL_NEXT)
+        self.open_page(URL_NEXT)
         # to check normal
-        # self.open_page(self.driver, URL_SITE)
+        # self.open_page(URL_SITE)
         # to check iframe
-        self.open_page(self.driver, URL_IFR)
+        # self.open_page(URL_IFR)
         try:
-            conn = sqlite3.connect("cv_ee.db")
+            conn = sqlite3.connect("jobs.db")
             cursor = conn.cursor()
-            total_results = self.get_total_results(self.driver)
+            total_results = self.get_total_results()
             if total_results:
-                self.handle_pagination(conn, cursor)
+                self.handle_pagination(conn, cursor, total_results)
             conn.close()
             print("Saved to DB")
         except sqlite3.Error as e:

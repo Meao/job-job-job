@@ -1,6 +1,6 @@
 import sqlite3
 
-conn = sqlite3.connect("cv_ee.db")
+conn = sqlite3.connect("jobs.db")
 cursor = conn.cursor()
 
 cursor.execute(

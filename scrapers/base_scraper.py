@@ -1,4 +1,3 @@
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from db_save import save_to_db
@@ -45,7 +44,7 @@ class BaseScraper:
             description: Full description of the vacancy.
             requirements: Specific requirements extracted from the description.
         """
-        save_to_db(conn, cursor, name, href, expires, description, requirements)
+        return save_to_db(conn, cursor, name, href, expires, description, requirements)
 
     def send_to_telegram(self, message):
         """

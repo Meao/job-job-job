@@ -27,7 +27,9 @@ def save_to_db(conn, cursor, name, href, expires, description=None, requirements
             )
             conn.commit()
             print(f"Saved: {name}, {href}, {expires}")
+            return True
         else:
             print(f"Already exists in DB: {name}")
+            return False
     except Exception as e:
         print(f"Error saving to database: {e}")
